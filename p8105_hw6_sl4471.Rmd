@@ -6,7 +6,11 @@ output: github_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+  fig.width = 6.5,
+  fig.asp = 1.0,
+  out.width = "90%"
+)
 library(tidyverse)
 library(modelr)
 library(mgcv)
@@ -103,15 +107,77 @@ birthweight =
                                                        ifelse(frace == 8, "Other", 
                                                               ifelse(frace == 9, "Unknown",
                                                                      NA))))))),
+         frace = fct_relevel(frace, "White"),
          malform = as.factor(ifelse(malform == 0, "Absent", "Present")),
          mrace = as.factor(ifelse(mrace == 1, "White", 
                                   ifelse(mrace == 2, "Black", 
                                          ifelse(mrace == 3, "Asian", 
                                                 ifelse(mrace == 4,
                                                        "Puerto Rican", 
-                                                       ifelse(mrace == 8, "Other", NA)))))))
+                                                       ifelse(mrace == 8, "Other", NA)))))),
+         mrace  = fct_relevel(mrace, "White"))
 
 
 table(is.na(birthweight))
+```
+
+```{r}
+birthweight_fit = lm(bwt ~ ., data = birthweight)
+step(birthweight_fit, direction = 'backward')
+```
+
+```{r}
+model1 = lm(bwt ~ babysex + bhead + blength + delwt + 
+              fincome + gaweeks + mheight + mrace + parity + ppwt + smoken, data = birthweight)
+summary(model1)
+```
+
+```{r}
+birthweight %>% 
+  add_predictions(model1) %>% 
+  add_residuals(model1) %>%
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point(alpha = 0.5) +
+  labs(
+    title = "Residuals VS Fitted values",
+    x = "Fitted value",
+    y = "Residual")
+```
+
+```{r}
+model2 = lm(bwt ~ blength + gaweeks, data = birthweight)
+summary(model2)
+```
+
+```{r}
+model3 = lm(bwt ~ bhead + blength + babysex + babysex*bhead + 
+              babysex*blength + bhead*blength + babysex*bhead*blength, data = birthweight)
+summary(model3)
+```
+
+
+```{r}
+cv_df = 
+  crossv_mc(birthweight, 100) %>% 
+  mutate(train = map(train, as_tibble),
+         test = map(test, as_tibble)) %>% 
+  mutate(model1 = map(train, ~lm(bwt ~ babysex + bhead + blength + delwt + 
+              fincome + gaweeks + mheight + mrace + parity + ppwt + smoken, data = birthweight)),
+         model2 = map(train, ~lm(bwt ~ blength + gaweeks, data = birthweight)),
+         model3 = map(train, ~lm(bwt ~ bhead + blength + babysex + babysex*bhead + 
+              babysex*blength + bhead*blength + babysex*bhead*blength, data = birthweight))) %>% 
+  mutate(rmse_model1 = map2_dbl(model1, test, ~rmse(model = .x, data = .y)),
+         rmse_model2 = map2_dbl(model2, test, ~rmse(model = .x, data = .y)),
+         rmse_model3 = map2_dbl(model3, test, ~rmse(model = .x, data = .y)))
+```
+
+```{r}
+cv_df %>% 
+  select(starts_with("rmse")) %>% 
+  gather(key = model, value = rmse) %>% 
+  mutate(model = str_replace(model, "rmse_", ""),
+         model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) + 
+  geom_violin(fill = "blue", alpha = 0.5)
 ```
 
