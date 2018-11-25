@@ -1,0 +1,95 @@
+---
+title: "p8105_hw6_sl4471"
+author: Shwuei Liu
+date: 11/23/2018
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(modelr)
+library(mgcv)
+
+theme_set(theme_bw() + theme(legend.position = "bottom"))
+```
+
+# Probelm 1
+
+```{r import_and_tidy}
+homicides_data = 
+  read_csv("./data/homicide-data.csv") %>% 
+  janitor::clean_names() %>% 
+  mutate(city_state = str_c(city, ", ",  state), 
+         resolved = as.numeric(disposition == "Closed by arrest"), 
+         victim_race = ifelse(victim_race == "White", "White", 
+                              ifelse(!(victim_race == "White"), "Non-white", NA)),
+         victim_race = fct_relevel(victim_race, "White"), 
+         victim_age = as.numeric(victim_age)) %>% 
+  filter(!(city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL")))
+```
+
+```{r}
+baltimore_fit = 
+  homicides_data %>% 
+  filter(city_state == "Baltimore, MD") %>% 
+  glm(resolved ~ victim_age + victim_race + victim_sex, data = ., family = binomial())
+
+baltimore_estimate =
+  baltimore_fit %>% 
+  broom::tidy()
+```
+
+
+```{r}
+baltimore_or = 
+  baltimore_fit %>% 
+  broom::tidy(conf.int = TRUE, exponentiate = TRUE) %>% 
+  rename(OR = estimate) %>% 
+  select(OR, conf.low, conf.high) %>% 
+  bind_cols(baltimore_estimate, .) %>% 
+  filter(term == "victim_raceNon-white") %>% 
+  select(term, estimate, OR, conf.low, conf.high)
+
+knitr::kable(baltimore_or, digits = 3)
+```
+
+
+```{r warning = FALSE}
+glm_all = 
+  homicides_data %>% 
+  group_by(city_state) %>% 
+  nest() %>% 
+  mutate(model_glm = map(data, ~glm(resolved ~ victim_age + victim_race + victim_sex, 
+                                 data = ., family = binomial())),
+          tidy_glm = map(model_glm, broom::tidy), 
+         ci_glm = map(model_glm, broom::confint_tidy)) %>% 
+  select(-data, -model_glm) %>% 
+  unnest() %>% 
+  filter(term == "victim_raceNon-white") %>% 
+  mutate(OR = exp(estimate), conf.low = exp(conf.low), conf.high = exp(conf.high)) %>% 
+  select(city_state, OR, conf.low, conf.high)
+
+glm_all
+```
+
+```{r}
+glm_all %>% 
+  mutate(city_state = fct_reorder(city_state, OR)) %>% 
+  ggplot(aes(x = city_state, y = OR)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+  coord_flip() +
+   labs(
+    title = "The odds ratio and CIs of each city",
+    x = "City",
+    y = "Odds ratio") +
+  theme(axis.text.y = element_text(size = 8, hjust = 1)) 
+```
+
+# Problem 2
+
+```{r}
+
+```
+
