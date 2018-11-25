@@ -77,8 +77,8 @@ glm_all
 glm_all %>% 
   mutate(city_state = fct_reorder(city_state, OR)) %>% 
   ggplot(aes(x = city_state, y = OR)) +
-  geom_point() +
-  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+  geom_point(color = "red") +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), alpha = 0.5) +
   coord_flip() +
    labs(
     title = "The odds ratio and CIs of each city",
@@ -90,6 +90,28 @@ glm_all %>%
 # Problem 2
 
 ```{r}
+birthweight = 
+  read_csv("./data/birthweight.csv") %>% 
+  janitor::clean_names() %>% 
+  select(bwt, everything()) %>% 
+  mutate(babysex = as.factor(ifelse(babysex == 1, "Male", "Female")), 
+         frace = as.factor(ifelse(frace == 1, "White", 
+                                  ifelse(frace == 2, "Black", 
+                                         ifelse(frace == 3, "Asian", 
+                                                ifelse(frace == 4,
+                                                       "Puerto Rican", 
+                                                       ifelse(frace == 8, "Other", 
+                                                              ifelse(frace == 9, "Unknown",
+                                                                     NA))))))),
+         malform = as.factor(ifelse(malform == 0, "Absent", "Present")),
+         mrace = as.factor(ifelse(mrace == 1, "White", 
+                                  ifelse(mrace == 2, "Black", 
+                                         ifelse(mrace == 3, "Asian", 
+                                                ifelse(mrace == 4,
+                                                       "Puerto Rican", 
+                                                       ifelse(mrace == 8, "Other", NA)))))))
 
+
+table(is.na(birthweight))
 ```
 
