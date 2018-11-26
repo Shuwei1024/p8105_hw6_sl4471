@@ -95,7 +95,7 @@ From the plot, the odds ratios of Tamlpa, Birmingham and Durham are equal to or 
 
 # Problem 2
 
-```{r}
+```{r import_data}
 birthweight = 
   read_csv("./data/birthweight.csv") %>% 
   janitor::clean_names() %>% 
@@ -123,18 +123,19 @@ birthweight =
 table(is.na(birthweight))
 ```
 
-```{r}
+The dataset does not have missing values.
+
+```{r model1}
 birthweight_fit = lm(bwt ~ ., data = birthweight)
 step(birthweight_fit, direction = 'backward')
-```
-
-```{r}
 model1 = lm(bwt ~ babysex + bhead + blength + delwt + 
               fincome + gaweeks + mheight + mrace + parity + ppwt + smoken, data = birthweight)
 summary(model1)
 ```
 
-```{r}
+In order to fit a "good" model, I chose stepwise method to pick useful predictors. According to the result of stepwise, model as above is created. And then apply "summary()" to the model to test if the predictors are significant and found that all the coefficients in the model are significant and should be kept in the model.
+
+```{r plot}
 birthweight %>% 
   add_predictions(model1) %>% 
   add_residuals(model1) %>%
@@ -146,19 +147,28 @@ birthweight %>%
     y = "Residual")
 ```
 
-```{r}
+From the plot, residuals do not lie reandomly around the zero.
+
+Fit model2 using length at birth and gestational age as predictors (main effects only).
+
+```{r model2}
 model2 = lm(bwt ~ blength + gaweeks, data = birthweight)
 summary(model2)
 ```
 
-```{r}
+From the result, it seems that all the predictors are significant.
+
+Fit model3 using head circumference, length, sex, and all interactions (including the three-way interaction) between these.
+
+```{r model3}
 model3 = lm(bwt ~ bhead + blength + babysex + babysex*bhead + 
               babysex*blength + bhead*blength + babysex*bhead*blength, data = birthweight)
 summary(model3)
 ```
 
+Accordding to the test results, bhead, blend and babysexMale has a larger p-value which means that they may not be significant to the model. Then using cross validation to compare these models.
 
-```{r}
+```{r cv}
 cv_df = 
   crossv_mc(birthweight, 100) %>% 
   mutate(train = map(train, as_tibble),
@@ -171,9 +181,11 @@ cv_df =
   mutate(rmse_model1 = map2_dbl(model1, test, ~rmse(model = .x, data = .y)),
          rmse_model2 = map2_dbl(model2, test, ~rmse(model = .x, data = .y)),
          rmse_model3 = map2_dbl(model3, test, ~rmse(model = .x, data = .y)))
+
+cv_df
 ```
 
-```{r}
+```{r cv_plot}
 cv_df %>% 
   select(starts_with("rmse")) %>% 
   gather(key = model, value = rmse) %>% 
@@ -182,4 +194,6 @@ cv_df %>%
   ggplot(aes(x = model, y = rmse)) + 
   geom_violin(fill = "blue", alpha = 0.5)
 ```
+
+Compared with the other two, model1 has a lower RMSE. So model1 has a better performance in lower RMSE and model buiding.
 
