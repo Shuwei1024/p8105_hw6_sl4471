@@ -84,7 +84,7 @@ glm_all %>%
   geom_point(color = "red") +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), alpha = 0.5) +
   coord_flip() +
-   labs(
+  labs(
     title = "The odds ratio and CIs of each city",
     x = "City",
     y = "Odds Ratio and CI") +
@@ -192,7 +192,8 @@ cv_df %>%
   mutate(model = str_replace(model, "rmse_", ""),
          model = fct_inorder(model)) %>% 
   ggplot(aes(x = model, y = rmse)) + 
-  geom_violin(fill = "blue", alpha = 0.5)
+  geom_violin(fill = "blue", alpha = 0.5) +
+  labs(title = "RMSE of different models")
 ```
 
 Compared with the other two, model1 has a lower RMSE. So model1 has a better performance in lower RMSE and model buiding.
