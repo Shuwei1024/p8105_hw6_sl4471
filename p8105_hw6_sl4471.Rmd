@@ -33,7 +33,7 @@ homicides_data =
   filter(!(city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL")))
 ```
 
-```{r}
+```{r baltimore_fit}
 baltimore_fit = 
   homicides_data %>% 
   filter(city_state == "Baltimore, MD") %>% 
@@ -45,7 +45,7 @@ baltimore_estimate =
 ```
 
 
-```{r}
+```{r or_ci}
 baltimore_or = 
   baltimore_fit %>% 
   broom::tidy(conf.int = TRUE, exponentiate = TRUE) %>% 
@@ -59,7 +59,7 @@ knitr::kable(baltimore_or, digits = 3)
 ```
 
 
-```{r warning = FALSE}
+```{r all_cities, warning = FALSE}
 glm_all = 
   homicides_data %>% 
   group_by(city_state) %>% 
@@ -77,7 +77,7 @@ glm_all =
 glm_all
 ```
 
-```{r}
+```{r all_plot}
 glm_all %>% 
   mutate(city_state = fct_reorder(city_state, OR)) %>% 
   ggplot(aes(x = city_state, y = OR)) +
@@ -87,9 +87,11 @@ glm_all %>%
    labs(
     title = "The odds ratio and CIs of each city",
     x = "City",
-    y = "Odds ratio") +
+    y = "Odds Ratio and CI") +
   theme(axis.text.y = element_text(size = 8, hjust = 1)) 
 ```
+
+From the plot, the odds ratios of Tamlpa, Birmingham and Durham are equal to or greater than 1 while those of most cities are less than 1. This result shows that cases with non-white victim are less likely to be solved in most cities than those with white victim. Although Tamlpa, Birmingham and Durham have a higher odds ratio, they also have a pretty wide confidence inverval which makes the estimates have a bad performance in accuracy.
 
 # Problem 2
 
